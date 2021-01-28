@@ -1,0 +1,140 @@
+Question 1: 
+
+SELECT DISTINCT title AS Title, 
+                name AS Name, 
+                COUNT(*) OVER(PARTITION BY title )AS Rental_Count
+FROM film
+JOIN film_category AS fc
+ON  fc.film_id  = film.film_id 
+JOIN category AS cat
+ON cat.category_id = fc.category_id
+JOIN inventory AS inv
+ON  inv.film_id = film.film_id 
+JOIN rental AS rt
+ON  rt.inventory_id = inv.inventory_id 
+WHERE cat.name IN ('Animation','Children','Classics','Comedy','Family','Music')
+ORDER BY 2;
+
+
+Question 1(visualisation query to get the cumulated rental count per film category):
+
+select distinct Name, sum(Rental_Count) over (partition by name)
+from
+(SELECT DISTINCT title AS Title, name AS Name, COUNT(*) OVER(PARTITION BY title ) AS Rental_Count
+FROM film
+JOIN film_category AS fc
+ON  fc.film_id  = film.film_id 
+JOIN category AS cat
+ON cat.category_id = fc.category_id
+JOIN inventory AS inv
+ON  inv.film_id = film.film_id 
+JOIN rental AS rt
+ON  rt.inventory_id = inv.inventory_id 
+WHERE cat.name IN ('Animation','Children','Classics','Comedy','Family','Music'))sub
+ORDER BY 1
+
+
+
+Question 2:
+
+WITH sub AS (
+SELECT title AS Title, 
+       name AS Name, 
+       rental_duration AS Rental_duration,
+       Ntile(4) Over (PARTITION BY rental_duration ) AS Standard_Quartile
+FROM film
+JOIN film_category 
+ON film.film_id = film_category.film_id
+JOIN category 
+ON category.category_id = film_category.category_id
+WHERE category.name IN ('Animation','Children','Classics','Comedy','Family','Music')
+)
+
+SELECT Title,
+       Name, 
+       Rental_duration, 
+       Standard_Quartile
+FROM sub;
+
+
+Question 2 Jupyter notebook(python) Query:
+plt.figure(figsize=(8,6))
+sns.boxplot(x="name", y='rental_duration', data=q2)
+plt.title('Rental Duration for all Movie Categories', 
+          loc = 'center', 
+          pad= 30, 
+          fontsize=24, 
+          fontweight="bold",
+          color='black' )
+plt.xlabel('Category Name', fontsize = 15)
+plt.ylabel('Rental Duration', fontsize = 15)
+plt.show()
+
+
+
+
+
+Question 3:
+
+WITH rentals AS (
+SELECT f.title, 
+       cat.name, 
+       f.rental_duration,
+       NTILE(4) OVER (ORDER BY rental_duration) AS standard_quartile
+FROM category cat
+JOIN film_category fc
+ON cat.category_id = fc.category_id
+JOIN film f
+ON f.film_id = fc.film_id
+WHERE cat.name IN ('Animation','Children', 'Classics', 'Comedy', 'Family', 'Music')
+ )
+SELECT name, 
+       standard_quartile, 
+       COUNT(*) 
+FROM rentals
+GROUP BY 1,2
+ORDER BY 1,2;
+
+
+Question 3A Jupyter notebook(python) Query:
+sns.barplot(x="Category_name", y="count",hue="standard_quartile", data=q3)
+plt.title('Rental duration for family friendly movies ', loc = 'center', pad= 30, fontsize=24, fontweight="bold", color='black' )
+plt.xlabel('Category Name', fontsize = 15)
+plt.ylabel('Count', fontsize = 15)
+plt.text(s='Year: 2005', x = -1.0, y = -8, fontsize = 9,fontweight="bold", color='black')
+plt.show()
+
+Question 3B Jupyter notebook(python) Query:
+sns.boxplot(x="Category_name", y="count",data=q3)
+plt.title('Rental duration for family friendly movies ', loc = 'center', pad= 30, 
+fontsize=24, fontweight="bold", color='black' )
+plt.xlabel('Category Name', fontsize = 15)
+plt.ylabel('Count', fontsize = 15)
+plt.text(s='Year: 2005', x = -1.0, y = 3, fontsize =9,fontweight="bold",   color='black')
+plt.show()
+
+
+
+Question 4:
+
+SELECT DATE_PART('month', rental.rental_date) AS Rental_month, 
+       DATE_PART('year', rental.rental_date) AS Rental_year, 
+       str.store_id,
+       COUNT(*) count_rentals
+FROM rental 
+JOIN staff stf
+ON rental.staff_id = stf.staff_id
+JOIN store str
+ON str.store_id = stf.store_id
+GROUP BY 1, 2, 3
+ORDER BY  4 DESC;
+
+Question 4 Jupyter notebook(python) Query:
+sns.barplot(x="rental_month", y="count_rentals",hue="store_id",data=q4)
+plt.title(“Rentals per Month and Store “, loc = 'center', pad= 45, fontsize=24, fontweight="bold", color='black')
+plt.xlabel(“Rental Month”, fontsize = 15)
+plt.ylabel(“Rental Count”, fontsize = 15)
+plt.text(s=”Year: 2005”, x = -1.0, y = -1000, fontsize = 9, fontweight="bold",   color=”black”)
+plt.show()
+
+
